@@ -38,8 +38,15 @@ class GPAC_worker:
         self.env = os.environ.copy()
         self.env["LD_LIBRARY_PATH"] = self.gpac_lib_path
 
-    def process(self, src_path, dest_folder, options: dict):
+    def process(self, src_path, dst_path, options: dict):
+
         command = [self.mp4box_path]
+        for key, value in options.items():
+            command.append(key)
+            command.append(str(value))
+        command.append("-out")
+        command.append(dst_path)
+        command.append(src_path)
 
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
         output, errors = gpac_process.communicate()
@@ -67,13 +74,14 @@ def callback(ch, method, properties, body):
             destination = msg['parameters']['destination']
             src_path = source['path']
             dst_path = destination['path']
+            options = msg['parameters']['options']
 
             if not os.path.exists(os.path.dirname(dst_path)):
                 os.makedirs(os.path.dirname(dst_path))
 
             worker = GPAC_worker()
             worker.load_configuration()
-            worker.process(src_path, dst_path, {})
+            worker.process(src_path, dst_path, options)
 
             logging.info("""End of process from %s to %s""",
                 src_path,

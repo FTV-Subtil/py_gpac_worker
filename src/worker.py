@@ -48,6 +48,7 @@ class GPAC_worker:
         command.append(dst_path)
         command.append(src_path)
 
+        logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
         output, errors = gpac_process.communicate()
         self.log_subprocess(output, errors)

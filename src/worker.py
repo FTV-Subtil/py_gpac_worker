@@ -53,7 +53,15 @@ class GPAC_worker:
         self.log_subprocess(output, errors)
 
         if errors:
-            raise Exception("An error occurred processing %s: %s", file_path, errors.decode("utf-8"))
+            message = "An error occurred processing "
+            message += src_path + ": "
+            message += errors.decode("utf-8")
+            raise RuntimeError(message)
+        if gpac_process.returncode != 0:
+            message = "Process returned with error "
+            message += "(code: " + str(gpac_process.returncode) + "):\n"
+            message += output.decode("utf-8")
+            raise RuntimeError(message)
 
     def log_subprocess(self, stdout, stderr):
         if stdout:

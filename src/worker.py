@@ -7,7 +7,7 @@ import logging
 import subprocess
 import configparser
 
-from connection import Connection
+from amqp_connection import Connection
 
 conn = Connection()
 

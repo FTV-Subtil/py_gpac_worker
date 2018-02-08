@@ -38,7 +38,7 @@ class GPAC_worker:
         self.env = os.environ.copy()
         self.env["LD_LIBRARY_PATH"] = self.gpac_lib_path
 
-    def process(self, src_path, dst_path, options: dict):
+    def process(self, src_paths: list, dst_path: str, options: dict):
 
         command = [self.mp4box_path]
         for key, value in options.items():
@@ -46,7 +46,8 @@ class GPAC_worker:
             command.append(str(value))
         command.append("-out")
         command.append(dst_path)
-        command.append(src_path)
+        for path in src_paths:
+            command.append(path)
 
         logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
@@ -55,8 +56,8 @@ class GPAC_worker:
 
         if errors:
             message = "An error occurred processing "
-            message += src_path + ": "
             message += errors.decode("utf-8")
+            message += src_paths + ": "
             raise RuntimeError(message)
         if gpac_process.returncode != 0:
             message = "Process returned with error "
@@ -79,9 +80,11 @@ def callback(ch, method, properties, body):
         logging.debug(msg)
 
         try:
-            source = msg['parameters']['source']
+            src_paths = msg['parameters']['source']['paths']
+            if len(src_paths) == 0:
+                raise RuntimeError("No source specified")
+
             destination = msg['parameters']['destination']
-            src_path = source['path']
             dst_path = destination['path']
             options = msg['parameters']['options']
 
@@ -90,10 +93,10 @@ def callback(ch, method, properties, body):
 
             worker = GPAC_worker()
             worker.load_configuration()
-            worker.process(src_path, dst_path, options)
+            worker.process(src_paths, dst_path, options)
 
             logging.info("""End of process from %s to %s""",
-                src_path,
+                src_paths,
                 dst_path)
 
             body_message = {

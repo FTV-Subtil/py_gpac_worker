@@ -6,6 +6,7 @@ import traceback
 import logging
 import subprocess
 import configparser
+import uuid
 
 from connection import Connection
 
@@ -34,20 +35,38 @@ class GPAC_worker:
     def load_configuration(self):
         self.gpac_bin_path = self.get_parameter('BIN_PATH', 'binpath')
         self.gpac_lib_path = self.get_parameter('LIB_PATH', 'libpath')
+        self.gpac_output_dir_path = self.get_parameter('OUTPUT_PATH', 'output_path')
         self.mp4box_path = os.path.join(self.gpac_bin_path, "MP4Box")
         self.env = os.environ.copy()
         self.env["LD_LIBRARY_PATH"] = self.gpac_lib_path
 
-    def process(self, src_paths: list, dst_path: str, options: dict):
+    def process(self, src_paths: list, options: dict):
+
+        if not options:
+            option = dict()
 
         command = [self.mp4box_path]
+
+        dst_dir = os.path.join(self.gpac_output_dir_path, str(uuid.uuid4()))
+        dst_path = os.path.join(dst_dir, os.path.splitext(os.path.basename(src_paths[0]))[0] + "_dash.mpd")
+
+        if "-out" in options:
+            dst_path = options["-out"]
+            dst_dir = os.path.dirname(dst_path)
+            logging.warn("A custom output directory has been set: %s", dst_dir)
+        else:
+            options["-out"] = dst_path
+
         for key, value in options.items():
             command.append(key)
             command.append(str(value))
-        command.append("-out")
-        command.append(dst_path)
+
         for path in src_paths:
             command.append(path)
+
+        if not os.path.exists(dst_dir):
+            logging.debug("Create output directory: %s", dst_dir)
+            os.makedirs(dst_dir)
 
         logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
@@ -64,6 +83,8 @@ class GPAC_worker:
             message += "(code: " + str(gpac_process.returncode) + "):\n"
             message += output.decode("utf-8")
             raise RuntimeError(message)
+
+        return [os.path.join(dst_dir, file) for file in os.listdir(dst_dir)]
 
     def log_subprocess(self, stdout, stderr):
         if stdout:
@@ -84,26 +105,23 @@ def callback(ch, method, properties, body):
             if len(src_paths) == 0:
                 raise RuntimeError("No source specified")
 
-            destination = msg['parameters']['destination']
-            dst_path = destination['path']
             options = msg['parameters']['options']
-
-            if not os.path.exists(os.path.dirname(dst_path)):
-                os.makedirs(os.path.dirname(dst_path))
 
             worker = GPAC_worker()
             worker.load_configuration()
-            worker.process(src_paths, dst_path, options)
+            dst_paths = worker.process(src_paths, options)
 
             logging.info("""End of process from %s to %s""",
                 src_paths,
-                dst_path)
+                dst_paths)
 
             body_message = {
                 "status": "completed",
                 "job_id": msg['job_id'],
+                "output": dst_paths
             }
 
+            conn.sendJson('job_gpac_completed', body_message)
         except Exception as e:
             logging.error(e)
             traceback.print_exc()

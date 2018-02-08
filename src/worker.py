@@ -32,8 +32,8 @@ class GPAC_worker:
         return config.get('gpac', param)
 
     def load_configuration(self):
-        self.gpac_bin_path = self.get_parameter('BIN_PATH', 'binpath')
-        self.gpac_lib_path = self.get_parameter('LIB_PATH', 'libpath')
+        self.gpac_bin_path = self.get_parameter('BIN_PATH', 'bin_path')
+        self.gpac_lib_path = self.get_parameter('LIB_PATH', 'lib_path')
         self.mp4box_path = os.path.join(self.gpac_bin_path, "MP4Box")
         self.env = os.environ.copy()
         self.env["LD_LIBRARY_PATH"] = self.gpac_lib_path

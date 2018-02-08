@@ -70,18 +70,18 @@ class GPAC_worker:
 
         logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
-        output, errors = gpac_process.communicate()
-        self.log_subprocess(output, errors)
+        stdout, stderr = gpac_process.communicate()
+        self.log_subprocess(stdout, stderr)
 
-        if errors:
+        if stderr:
             message = "An error occurred processing "
-            message += errors.decode("utf-8")
             message += src_paths + ": "
+            message += stderr.decode("utf-8")
             raise RuntimeError(message)
         if gpac_process.returncode != 0:
             message = "Process returned with error "
             message += "(code: " + str(gpac_process.returncode) + "):\n"
-            message += output.decode("utf-8")
+            message += stdout.decode("utf-8")
             raise RuntimeError(message)
 
         return [os.path.join(dst_dir, file) for file in os.listdir(dst_dir)]

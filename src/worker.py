@@ -143,7 +143,7 @@ def callback(ch, method, properties, body):
         }
         conn.sendJson('job_gpac_error', error_content)
 
-conn.load_configuration()
+conn.load_configuration(config['amqp'])
 
 queues = [
     'job_gpac',

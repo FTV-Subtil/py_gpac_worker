@@ -8,7 +8,7 @@ import subprocess
 import configparser
 import uuid
 
-from connection import Connection
+from amqp_connection import Connection
 
 conn = Connection()
 

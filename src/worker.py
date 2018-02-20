@@ -104,6 +104,10 @@ def callback(ch, method, properties, body):
             src_paths = msg['parameters']['source']['paths']
             if len(src_paths) == 0:
                 raise RuntimeError("No source specified")
+            for path in src_paths:
+                if not os.path.exists(path):
+                    logging.error("Source path '%s' is not reachable or does not exists.", path)
+                    return False
 
             options = msg['parameters']['options']
 
@@ -142,6 +146,7 @@ def callback(ch, method, properties, body):
             "type": "job_gpac"
         }
         conn.sendJson('job_gpac_error', error_content)
+    return True
 
 conn.load_configuration(config['amqp'])
 

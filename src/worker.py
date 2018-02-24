@@ -59,7 +59,8 @@ class GPAC_worker:
 
         for key, value in options.items():
             command.append(key)
-            command.append(str(value))
+            if(value != True):
+                command.append(str(value))
 
         for path in src_paths:
             command.append(path)

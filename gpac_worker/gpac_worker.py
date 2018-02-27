@@ -1,21 +1,9 @@
-#!/usr/bin/env python
 
-import os
-import json
-import traceback
-import logging
-import subprocess
 import configparser
+import logging
+import os
+import subprocess
 import uuid
-
-from amqp_connection import Connection
-
-conn = Connection()
-
-logging.basicConfig(
-    format="%(asctime)-15s [%(levelname)s] %(message)s",
-    level=logging.DEBUG,
-)
 
 config = configparser.RawConfigParser()
 config.read([
@@ -43,7 +31,7 @@ class GPAC_worker:
     def process(self, src_paths: list, options: dict):
 
         if not options:
-            option = dict()
+            options = dict()
 
         command = [self.mp4box_path]
 
@@ -69,6 +57,18 @@ class GPAC_worker:
             logging.debug("Create output directory: %s", dst_dir)
             os.makedirs(dst_dir)
 
+        self.process_command(command)
+        return [os.path.join(dst_dir, file) for file in os.listdir(dst_dir)]
+
+    def generate_mp4(self, src_path, dst_path):
+        command = [self.mp4box_path]
+        command.append("-add")
+        command.append(src_path)
+        command.append(dst_path)
+        self.process_command(command)
+        return dst_path
+
+    def process_command(self, command):
         logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
         stdout, stderr = gpac_process.communicate()
@@ -85,8 +85,6 @@ class GPAC_worker:
             message += stdout.decode("utf-8")
             raise RuntimeError(message)
 
-        return [os.path.join(dst_dir, file) for file in os.listdir(dst_dir)]
-
     def log_subprocess(self, stdout, stderr):
         if stdout:
             for line in stdout.decode("utf-8").split("\n"):
@@ -94,68 +92,3 @@ class GPAC_worker:
         if stderr:
             for line in stderr.decode("utf-8").split("\n"):
                 logging.error("[GPAC Worker] " + line)
-
-
-def callback(ch, method, properties, body):
-    try:
-        msg = json.loads(body.decode('utf-8'))
-        logging.debug(msg)
-
-        try:
-            src_paths = msg['parameters']['source']['paths']
-            if len(src_paths) == 0:
-                raise RuntimeError("No source specified")
-            for path in src_paths:
-                if not os.path.exists(path):
-                    logging.error("Source path '%s' is not reachable or does not exists.", path)
-                    return False
-
-            options = msg['parameters']['options']
-
-            worker = GPAC_worker()
-            worker.load_configuration()
-            dst_paths = worker.process(src_paths, options)
-
-            logging.info("""End of process from %s to %s""",
-                src_paths,
-                dst_paths)
-
-            body_message = {
-                "status": "completed",
-                "job_id": msg['job_id'],
-                "output": dst_paths
-            }
-
-            conn.sendJson('job_gpac_completed', body_message)
-        except Exception as e:
-            logging.error(e)
-            traceback.print_exc()
-            error_content = {
-                "body": body.decode('utf-8'),
-                "error": str(e),
-                "job_id": msg['job_id'],
-                "type": "job_gpac"
-            }
-            conn.sendJson('job_gpac_error', error_content)
-
-    except Exception as e:
-        logging.error(e)
-        traceback.print_exc()
-        error_content = {
-            "body": body.decode('utf-8'),
-            "error": str(e),
-            "type": "job_gpac"
-        }
-        conn.sendJson('job_gpac_error', error_content)
-    return True
-
-conn.load_configuration(config['amqp'])
-
-queues = [
-    'job_gpac',
-    'job_gpac_completed',
-    'job_gpac_error'
-]
-
-conn.connect(queues)
-conn.consume('job_gpac', callback)

@@ -4,7 +4,7 @@ Worker to transcode media into DASH
 Dependencies
 ------------
 
-Depends on [py_amqp_connection](https://github.com/FTV-Subtil/py_amqp_connection) package:
+To develop locally, add the dependencies with this command:
 ```bash
-pip3 install amqp_connection
+pip3 install -r requirements.txt
 ```

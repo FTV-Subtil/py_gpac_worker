@@ -36,7 +36,7 @@ def callback(ch, method, properties, body):
             else:
                 error_content = {
                     "body": body.decode('utf-8'),
-                    "error": "unable to process message, kind in unsupported",
+                    "error": "unable to process message, kind is not supported",
                     "job_id": msg['job_id'],
                     "type": "job_gpac"
                 }

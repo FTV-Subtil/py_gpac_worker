@@ -8,6 +8,7 @@ import logging
 from amqp_connection import Connection
 import generate_dash
 import ttml_to_mp4
+import set_language
 
 conn = Connection()
 
@@ -33,6 +34,8 @@ def callback(ch, method, properties, body):
                 generate_dash.process(conn, msg)
             elif kind == "ttml_to_mp4":
                 ttml_to_mp4.process(conn, msg)
+            elif kind == "set_language":
+                set_language.process(conn, msg)
             else:
                 error_content = {
                     "body": body.decode('utf-8'),

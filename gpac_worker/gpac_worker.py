@@ -68,6 +68,29 @@ class GPAC_worker:
         self.process_command(command)
         return dst_path
 
+    def set_language(self, src_path: str, options: dict):
+        command = [self.mp4box_path]
+
+        dst_path = src_path
+        dst_dir = os.path.dirname(src_path)
+        if "-out" in options:
+            dst_path = options["-out"]
+            dst_dir = os.path.dirname(dst_path)
+
+        for key, value in options.items():
+            command.append(key)
+            if(value != True):
+                command.append(str(value))
+
+        if not os.path.exists(dst_dir):
+            logging.debug("Create output directory: %s", dst_dir)
+            os.makedirs(dst_dir)
+
+        command.append(src_path)
+
+        self.process_command(command)
+        return dst_path
+
     def process_command(self, command):
         logging.debug("Launching process command: %s", ' '.join(command))
         gpac_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)

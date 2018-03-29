@@ -27,4 +27,4 @@ def process(conn, msg):
         "output": dst_paths
     }
 
-    conn.sendJson('job_gpac_completed', body_message)
+    conn.publish_json('job_gpac_completed', body_message)

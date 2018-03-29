@@ -61,7 +61,7 @@ def callback(ch, method, properties, body):
                     "job_id": msg['job_id'],
                     "type": "job_gpac"
                 }
-                conn.sendJson('job_gpac_error', error_content)
+                conn.publish_json('job_gpac_error', error_content)
 
         except Exception as e:
             logging.error(e)
@@ -72,7 +72,7 @@ def callback(ch, method, properties, body):
                 "job_id": msg['job_id'],
                 "type": "job_gpac"
             }
-            conn.sendJson('job_gpac_error', error_content)
+            conn.publish_json('job_gpac_error', error_content)
 
     except Exception as e:
         logging.error(e)
@@ -82,16 +82,18 @@ def callback(ch, method, properties, body):
             "error": str(e),
             "type": "job_gpac"
         }
-        conn.sendJson('job_gpac_error', error_content)
+        conn.publish_json('job_gpac_error', error_content)
     return True
 
-conn.load_configuration(config['amqp'])
 
-queues = [
-    'job_gpac',
-    'job_gpac_completed',
-    'job_gpac_error'
-]
-
-conn.connect(queues)
-conn.consume('job_gpac', callback)
+conn.run(
+    config['amqp'],
+    [
+        'job_gpac'
+    ],
+    [
+        'job_gpac_completed',
+        'job_gpac_error'
+    ],
+    callback
+)

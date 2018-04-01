@@ -88,9 +88,7 @@ def callback(ch, method, properties, body):
 
 conn.run(
     config['amqp'],
-    [
-        'job_gpac'
-    ],
+    'job_gpac',
     [
         'job_gpac_completed',
         'job_gpac_error'

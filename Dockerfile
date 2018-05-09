@@ -1,4 +1,4 @@
-FROM ftvsubtil/alpine-gpac
+FROM ftvsubtil/alpine-gpac:release-0.1.0
 
 WORKDIR /app
 ADD . .

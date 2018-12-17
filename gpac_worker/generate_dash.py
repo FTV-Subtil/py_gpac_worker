@@ -1,21 +1,20 @@
 
 import logging
+
 from gpac_worker import GPAC_worker
+from parameters import get_parameter
 
 def process(conn, msg):
-    src_paths = msg['parameters']['source']['paths']
+    parameters = msg['parameters']
+    src_paths = get_parameter(parameters, 'source_paths')
+    dst_path = get_parameter(parameters, 'destination_path')
+
     if len(src_paths) == 0:
         raise RuntimeError("No source specified")
-    # for path in src_paths:
-    #     if not os.path.exists(path):
-    #         logging.error("Source path '%s' is not reachable or does not exists.", path)
-    #         return False
-
-    options = msg['parameters']['options']
 
     worker = GPAC_worker()
     worker.load_configuration()
-    dst_paths = worker.process(src_paths, options)
+    dst_paths = worker.process(src_paths, dst_path, parameters)
 
     logging.info("""End of process from %s to %s""",
         src_paths,

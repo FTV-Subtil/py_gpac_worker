@@ -8,6 +8,7 @@ import os
 
 from amqp_connection import Connection
 import generate_dash
+from parameters import get_parameter
 import ttml_to_mp4
 import set_language
 
@@ -44,20 +45,24 @@ def callback(ch, method, properties, body):
         try:
             parameters = msg['parameters']
             if 'requirements' in parameters:
-                if not check_requirements(parameters['requirements']):
+                if not check_requirements(get_parameter(parameters, 'requirements')):
                     return False
 
-            kind = parameters['kind']
-            if kind == "generate_dash":
-                generate_dash.process(conn, msg)
-            elif kind == "ttml_to_mp4":
-                ttml_to_mp4.process(conn, msg)
-            elif kind == "set_language":
-                set_language.process(conn, msg)
+            action = get_parameter(parameters, 'action')
+
+            if action == "generate_dash":
+                if generate_dash.process(conn, msg) == False:
+                    return False
+            elif action == "ttml_to_mp4":
+                if ttml_to_mp4.process(conn, msg) == False:
+                    return False
+            elif action == "set_language":
+                if set_language.process(conn, msg) == False:
+                    return False
             else:
                 error_content = {
                     "body": body.decode('utf-8'),
-                    "error": "unable to process message, kind is not supported",
+                    "error": "unable to process message, action is not supported",
                     "job_id": msg['job_id'],
                     "type": "job_gpac"
                 }

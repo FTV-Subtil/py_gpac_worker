@@ -1,4 +1,5 @@
 # Dependencies requirements for GPAC worker
 
 amqp-connection==1.4.3
-pika==0.11.2
+pika==0.12.0
+requests==2.20.1

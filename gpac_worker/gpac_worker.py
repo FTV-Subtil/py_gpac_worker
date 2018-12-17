@@ -5,6 +5,8 @@ import os
 import subprocess
 import uuid
 
+from parameters import get_parameter
+
 config = configparser.RawConfigParser()
 config.read([
     'worker.cfg',
@@ -28,27 +30,28 @@ class GPAC_worker:
         self.env = os.environ.copy()
         self.env["LD_LIBRARY_PATH"] = self.gpac_lib_path
 
-    def process(self, src_paths: list, options: dict):
-
-        if not options:
-            options = dict()
-
+    def process(self, src_paths: list, dst_path: str, parameters: list):
         command = [self.mp4box_path]
 
-        dst_dir = os.path.join(self.gpac_output_dir_path, str(uuid.uuid4()))
-        dst_path = os.path.join(dst_dir, os.path.splitext(os.path.basename(src_paths[0]))[0] + "_dash.mpd")
+        dst_dir = os.path.dirname(src_paths[0])
+        manifest_filename = os.path.join(dst_dir, os.path.splitext(os.path.basename(src_paths[0]))[0] + "_dash.mpd")
+        if dst_path is not None:
+            manifest_filename = dst_path
 
-        if "-out" in options:
-            dst_path = options["-out"]
-            dst_dir = os.path.dirname(dst_path)
-            logging.warn("A custom output directory has been set: %s", dst_dir)
-        else:
-            options["-out"] = dst_path
+        dst_dir = os.path.dirname(manifest_filename)
+        segment_duration = get_parameter(parameters, 'segment_duration')
+        fragment_duration = get_parameter(parameters, 'fragment_duration')
 
-        for key, value in options.items():
-            command.append(key)
-            if(value != True):
-                command.append(str(value))
+        command.append("-out")
+        command.append(manifest_filename)
+
+        if segment_duration is not None:
+            command.append("-dash")
+            command.append(str(segment_duration))
+
+        if fragment_duration is not None:
+            command.append("-frag")
+            command.append(str(fragment_duration))
 
         for path in src_paths:
             command.append(path)
@@ -60,7 +63,7 @@ class GPAC_worker:
         self.process_command(command)
         return [os.path.join(dst_dir, file) for file in os.listdir(dst_dir)]
 
-    def generate_mp4(self, src_path, dst_path):
+    def generate_mp4(self, src_path: str, dst_path: str):
         command = [self.mp4box_path]
         command.append("-add")
         command.append(src_path)
@@ -68,19 +71,16 @@ class GPAC_worker:
         self.process_command(command)
         return dst_path
 
-    def set_language(self, src_path: str, options: dict):
+    def set_language(self, src_path: str, dst_path: str, language_code: str):
         command = [self.mp4box_path]
 
-        dst_path = src_path
-        dst_dir = os.path.dirname(src_path)
-        if "-out" in options:
-            dst_path = options["-out"]
-            dst_dir = os.path.dirname(dst_path)
+        dst_dir = os.path.dirname(dst_path)
 
-        for key, value in options.items():
-            command.append(key)
-            if(value != True):
-                command.append(str(value))
+        command.append("-lang")
+        command.append(language_code)
+
+        command.append("-out")
+        command.append(dst_path)
 
         if not os.path.exists(dst_dir):
             logging.debug("Create output directory: %s", dst_dir)

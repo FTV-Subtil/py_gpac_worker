@@ -41,6 +41,9 @@ class GPAC_worker:
         dst_dir = os.path.dirname(manifest_filename)
         segment_duration = get_parameter(parameters, 'segment_duration')
         fragment_duration = get_parameter(parameters, 'fragment_duration')
+        profile = get_parameter(parameters, 'profile')
+        rip = get_parameter(parameters, 'rip')
+        url_template = get_parameter(parameters, 'url_template')
 
         command.append("-out")
         command.append(manifest_filename)
@@ -52,6 +55,16 @@ class GPAC_worker:
         if fragment_duration is not None:
             command.append("-frag")
             command.append(str(fragment_duration))
+
+        if profile is not None:
+            command.append("-profile")
+            command.append(profile)
+
+        if rip is True:
+            command.append("-rip")
+
+        if url_template is True:
+            command.append("-url-template")
 
         for path in src_paths:
             command.append(path)
